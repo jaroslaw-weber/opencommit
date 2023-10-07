@@ -22,7 +22,8 @@ export enum CONFIG_KEYS {
   OCO_MODEL = 'OCO_MODEL',
   OCO_LANGUAGE = 'OCO_LANGUAGE',
   OCO_MESSAGE_TEMPLATE_PLACEHOLDER = 'OCO_MESSAGE_TEMPLATE_PLACEHOLDER',
-  OCO_PROMPT_MODULE = 'OCO_PROMPT_MODULE'
+  OCO_PROMPT_MODULE = 'OCO_PROMPT_MODULE',
+  OCO_HUGGING_FACE_API_KEY = 'OCO_HUGGING_FACE_API_KEY'
 }
 
 export const DEFAULT_MODEL_TOKEN_LIMIT = 4096;
@@ -48,7 +49,7 @@ const validateConfig = (
 
 export const configValidators = {
   [CONFIG_KEYS.OCO_OPENAI_API_KEY](value: any, config: any = {}) {
-    validateConfig(CONFIG_KEYS.OCO_OPENAI_API_KEY, value, 'Cannot be empty');
+    validateConfig('API_KEY', value || CONFIG_KEYS.OCO_HUGGING_FACE_API_KEY, 'You need to provide an API key');
     validateConfig(
       CONFIG_KEYS.OCO_OPENAI_API_KEY,
       value.startsWith('sk-'),
@@ -172,7 +173,8 @@ export const getConfig = (): ConfigType | null => {
     OCO_LANGUAGE: process.env.OCO_LANGUAGE || 'en',
     OCO_MESSAGE_TEMPLATE_PLACEHOLDER:
       process.env.OCO_MESSAGE_TEMPLATE_PLACEHOLDER || '$msg',
-    OCO_PROMPT_MODULE: process.env.OCO_PROMPT_MODULE || 'conventional-commit'
+    OCO_PROMPT_MODULE: process.env.OCO_PROMPT_MODULE || 'conventional-commit',
+    OCO_HUGGING_FACE_API_KEY: process.env.OCO_HUGGING_FACE_API_KEY
   };
 
   const configExists = existsSync(configPath);

@@ -13,15 +13,16 @@ import {
   CONFIG_MODES,
   DEFAULT_MODEL_TOKEN_LIMIT,
   getConfig
-} from './commands/config';
-import { GenerateCommitMessageErrorEnum } from './generateCommitMessageFromGitDiff';
-import { tokenCount } from './utils/tokenCount';
+} from '../commands/config';
+import { GenerateCommitMessageErrorEnum } from '../generateCommitMessageFromGitDiff';
+import { tokenCount } from '../utils/tokenCount';
+import { AiEngine } from './Engine';
 
 const config = getConfig();
 
 let maxTokens = config?.OCO_OPENAI_MAX_TOKENS;
 let basePath = config?.OCO_OPENAI_BASE_PATH;
-let apiKey = config?.OCO_OPENAI_API_KEY;
+let apiKey = config?.OCO_OPENAI_API_KEY || config?.OCO_HUGGING_FACE_API_KEY
 
 const [command, mode] = process.argv.slice(2);
 
@@ -29,7 +30,7 @@ if (!apiKey && command !== 'config' && mode !== CONFIG_MODES.set) {
   intro('opencommit');
 
   outro(
-    'OCO_OPENAI_API_KEY is not set, please run `oco config set OCO_OPENAI_API_KEY=<your token>. Make sure you add payment details, so API works.`'
+    'OCO_OPENAI_API_KEY and OCO_HUGGING_FACE_API_KEY are not set, please run `oco config set OCO_OPENAI_API_KEY=<your token> or oco config set OCO_HUGGING_FACE_API_KEY . If you are using GPT, make sure you add payment details, so API works.`'
   );
   outro(
     'For help look into README https://github.com/di-sukharev/opencommit#setup'
@@ -40,7 +41,7 @@ if (!apiKey && command !== 'config' && mode !== CONFIG_MODES.set) {
 
 const MODEL = config?.OCO_MODEL || 'gpt-3.5-turbo';
 
-class OpenAi {
+class OpenAi implements AiEngine {
   private openAiApiConfiguration = new OpenAiApiConfiguration({
     apiKey: apiKey
   });
@@ -100,16 +101,6 @@ class OpenAi {
   };
 }
 
-export const getOpenCommitLatestVersion = async (): Promise<
-  string | undefined
-> => {
-  try {
-    const { stdout } = await execa('npm', ['view', 'opencommit', 'version']);
-    return stdout;
-  } catch (_) {
-    outro('Error while getting the latest version of opencommit');
-    return undefined;
-  }
-};
+
 
 export const api = new OpenAi();
