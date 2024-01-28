@@ -10,6 +10,7 @@ import { intro, outro } from '@clack/prompts';
 
 import { COMMANDS } from '../CommandsEnum';
 import { getI18nLocal } from '../i18n';
+import { OllamaAi } from '../engine/ollama';
 
 dotenv.config();
 
@@ -24,6 +25,8 @@ export enum CONFIG_KEYS {
   OCO_MESSAGE_TEMPLATE_PLACEHOLDER = 'OCO_MESSAGE_TEMPLATE_PLACEHOLDER',
   OCO_PROMPT_MODULE = 'OCO_PROMPT_MODULE',
   OCO_AI_PROVIDER = 'OCO_AI_PROVIDER',
+  OCO_OLLAMA_MODEL = 'OCO_OLLAMA_MODEL',
+  OCO_OLLAMA_BASE_PATH = 'OCO_OLLAMA_BASE_PATH'
 }
 
 export const DEFAULT_MODEL_TOKEN_LIMIT = 4096;
@@ -166,6 +169,27 @@ export const configValidators = {
     );
     return value;
   },
+  async [CONFIG_KEYS.OCO_OLLAMA_BASE_PATH](value: any) {
+    validateConfig(
+      CONFIG_KEYS.OCO_OLLAMA_BASE_PATH,
+      typeof value === 'string',
+      'Must be string'
+    );
+    validateConfig(
+      CONFIG_KEYS.OCO_OLLAMA_BASE_PATH,
+      await OllamaAi.validateBaseUrl(value),
+      'Must be valid ollama url'
+    );
+    return value;
+  },
+  async [CONFIG_KEYS.OCO_OLLAMA_MODEL](value: any, config: any = {}) {
+    validateConfig(
+      CONFIG_KEYS.OCO_OLLAMA_MODEL,
+      await OllamaAi.validateModel(value, config?.OCO_OLLAMA_BASE_PATH),
+      `${value} is not supported yet, use 'mistral' (default)`
+    );
+    return value;
+  }
 };
 
 export type ConfigType = {
@@ -188,7 +212,9 @@ export const getConfig = (): ConfigType | null => {
     OCO_MESSAGE_TEMPLATE_PLACEHOLDER:
       process.env.OCO_MESSAGE_TEMPLATE_PLACEHOLDER || '$msg',
     OCO_PROMPT_MODULE: process.env.OCO_PROMPT_MODULE || 'conventional-commit',
-    OCO_AI_PROVIDER: process.env.OCO_AI_PROVIDER || 'openai'
+    OCO_AI_PROVIDER: process.env.OCO_AI_PROVIDER || 'openai',
+    OCO_OLLAMA_BASE_PATH: process.env.OCO_OLLAMA_BASE_PATH || 'http://localhost:11434',
+    OCO_OLLAMA_MODEL: process.env.OCO_OLLAMA_MODEL || 'mistral'
   };
 
   const configExists = existsSync(configPath);
@@ -244,7 +270,7 @@ export const setConfig = (keyValues: [key: string, value: string][]) => {
     }
 
     const validValue =
-      configValidators[configKey as CONFIG_KEYS](parsedConfigValue);
+      configValidators[configKey as CONFIG_KEYS](parsedConfigValue, config);
     config[configKey as CONFIG_KEYS] = validValue;
   }
 
