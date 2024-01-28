@@ -14823,6 +14823,76 @@ var require_ini = __commonJS({
   }
 });
 
+// node_modules/proxy-from-env/index.js
+var require_proxy_from_env = __commonJS({
+  "node_modules/proxy-from-env/index.js"(exports) {
+    "use strict";
+    var parseUrl = require("url").parse;
+    var DEFAULT_PORTS = {
+      ftp: 21,
+      gopher: 70,
+      http: 80,
+      https: 443,
+      ws: 80,
+      wss: 443
+    };
+    var stringEndsWith = String.prototype.endsWith || function(s) {
+      return s.length <= this.length && this.indexOf(s, this.length - s.length) !== -1;
+    };
+    function getProxyForUrl2(url3) {
+      var parsedUrl = typeof url3 === "string" ? parseUrl(url3) : url3 || {};
+      var proto2 = parsedUrl.protocol;
+      var hostname = parsedUrl.host;
+      var port = parsedUrl.port;
+      if (typeof hostname !== "string" || !hostname || typeof proto2 !== "string") {
+        return "";
+      }
+      proto2 = proto2.split(":", 1)[0];
+      hostname = hostname.replace(/:\d*$/, "");
+      port = parseInt(port) || DEFAULT_PORTS[proto2] || 0;
+      if (!shouldProxy(hostname, port)) {
+        return "";
+      }
+      var proxy = getEnv2("npm_config_" + proto2 + "_proxy") || getEnv2(proto2 + "_proxy") || getEnv2("npm_config_proxy") || getEnv2("all_proxy");
+      if (proxy && proxy.indexOf("://") === -1) {
+        proxy = proto2 + "://" + proxy;
+      }
+      return proxy;
+    }
+    function shouldProxy(hostname, port) {
+      var NO_PROXY = (getEnv2("npm_config_no_proxy") || getEnv2("no_proxy")).toLowerCase();
+      if (!NO_PROXY) {
+        return true;
+      }
+      if (NO_PROXY === "*") {
+        return false;
+      }
+      return NO_PROXY.split(/[,\s]/).every(function(proxy) {
+        if (!proxy) {
+          return true;
+        }
+        var parsedProxy = proxy.match(/^(.+):(\d+)$/);
+        var parsedProxyHostname = parsedProxy ? parsedProxy[1] : proxy;
+        var parsedProxyPort = parsedProxy ? parseInt(parsedProxy[2]) : 0;
+        if (parsedProxyPort && parsedProxyPort !== port) {
+          return true;
+        }
+        if (!/^[.*]/.test(parsedProxyHostname)) {
+          return hostname !== parsedProxyHostname;
+        }
+        if (parsedProxyHostname.charAt(0) === "*") {
+          parsedProxyHostname = parsedProxyHostname.slice(1);
+        }
+        return !stringEndsWith.call(hostname, parsedProxyHostname);
+      });
+    }
+    function getEnv2(key) {
+      return process.env[key.toLowerCase()] || process.env[key.toUpperCase()] || "";
+    }
+    exports.getProxyForUrl = getProxyForUrl2;
+  }
+});
+
 // node_modules/@commitlint/types/lib/ensure.js
 var require_ensure = __commonJS({
   "node_modules/@commitlint/types/lib/ensure.js"(exports) {
@@ -14932,76 +15002,6 @@ var require_lib = __commonJS({
     __exportStar(require_parse2(), exports);
     __exportStar(require_prompt(), exports);
     __exportStar(require_rules(), exports);
-  }
-});
-
-// node_modules/proxy-from-env/index.js
-var require_proxy_from_env = __commonJS({
-  "node_modules/proxy-from-env/index.js"(exports) {
-    "use strict";
-    var parseUrl = require("url").parse;
-    var DEFAULT_PORTS = {
-      ftp: 21,
-      gopher: 70,
-      http: 80,
-      https: 443,
-      ws: 80,
-      wss: 443
-    };
-    var stringEndsWith = String.prototype.endsWith || function(s) {
-      return s.length <= this.length && this.indexOf(s, this.length - s.length) !== -1;
-    };
-    function getProxyForUrl2(url3) {
-      var parsedUrl = typeof url3 === "string" ? parseUrl(url3) : url3 || {};
-      var proto2 = parsedUrl.protocol;
-      var hostname = parsedUrl.host;
-      var port = parsedUrl.port;
-      if (typeof hostname !== "string" || !hostname || typeof proto2 !== "string") {
-        return "";
-      }
-      proto2 = proto2.split(":", 1)[0];
-      hostname = hostname.replace(/:\d*$/, "");
-      port = parseInt(port) || DEFAULT_PORTS[proto2] || 0;
-      if (!shouldProxy(hostname, port)) {
-        return "";
-      }
-      var proxy = getEnv2("npm_config_" + proto2 + "_proxy") || getEnv2(proto2 + "_proxy") || getEnv2("npm_config_proxy") || getEnv2("all_proxy");
-      if (proxy && proxy.indexOf("://") === -1) {
-        proxy = proto2 + "://" + proxy;
-      }
-      return proxy;
-    }
-    function shouldProxy(hostname, port) {
-      var NO_PROXY = (getEnv2("npm_config_no_proxy") || getEnv2("no_proxy")).toLowerCase();
-      if (!NO_PROXY) {
-        return true;
-      }
-      if (NO_PROXY === "*") {
-        return false;
-      }
-      return NO_PROXY.split(/[,\s]/).every(function(proxy) {
-        if (!proxy) {
-          return true;
-        }
-        var parsedProxy = proxy.match(/^(.+):(\d+)$/);
-        var parsedProxyHostname = parsedProxy ? parsedProxy[1] : proxy;
-        var parsedProxyPort = parsedProxy ? parseInt(parsedProxy[2]) : 0;
-        if (parsedProxyPort && parsedProxyPort !== port) {
-          return true;
-        }
-        if (!/^[.*]/.test(parsedProxyHostname)) {
-          return hostname !== parsedProxyHostname;
-        }
-        if (parsedProxyHostname.charAt(0) === "*") {
-          parsedProxyHostname = parsedProxyHostname.slice(1);
-        }
-        return !stringEndsWith.call(hostname, parsedProxyHostname);
-      });
-    }
-    function getEnv2(key) {
-      return process.env[key.toLowerCase()] || process.env[key.toUpperCase()] || "";
-    }
-    exports.getProxyForUrl = getProxyForUrl2;
   }
 });
 
@@ -16425,7 +16425,7 @@ var package_default = {
   scripts: {
     watch: "npm run -S build -- --sourcemap --watch",
     start: "node ./out/cli.cjs",
-    "ollama:start": "AI_PROVIDER='ollama' node./out/cli.cjs",
+    "ollama:start": "OCO_AI_PROVIDER='ollama' node ./out/cli.cjs",
     dev: "ts-node ./src/cli.ts",
     build: "rimraf out && node esbuild.config.js",
     "build:push": "npm run build && git add . && git commit -m 'build' && git push",
@@ -18647,420 +18647,6 @@ function getI18nLocal(value) {
   }
   return false;
 }
-
-// src/commands/config.ts
-dotenv.config();
-var DEFAULT_MODEL_TOKEN_LIMIT = 4096;
-var validateConfig = (key, condition, validationMessage) => {
-  if (!condition) {
-    ce(
-      `${source_default.red("\u2716")} Unsupported config key ${key}: ${validationMessage}`
-    );
-    process.exit(1);
-  }
-};
-var configValidators = {
-  ["OCO_OPENAI_API_KEY" /* OCO_OPENAI_API_KEY */](value, config8 = {}) {
-    validateConfig("API_KEY", value || config8.OCO_AI_PROVIDER == "ollama", "You need to provide an API key");
-    validateConfig(
-      "OCO_OPENAI_API_KEY" /* OCO_OPENAI_API_KEY */,
-      value.startsWith("sk-"),
-      'Must start with "sk-"'
-    );
-    validateConfig(
-      "OCO_OPENAI_API_KEY" /* OCO_OPENAI_API_KEY */,
-      config8["OCO_OPENAI_BASE_PATH" /* OCO_OPENAI_BASE_PATH */] || value.length === 51,
-      "Must be 51 characters long"
-    );
-    return value;
-  },
-  ["OCO_DESCRIPTION" /* OCO_DESCRIPTION */](value) {
-    validateConfig(
-      "OCO_DESCRIPTION" /* OCO_DESCRIPTION */,
-      typeof value === "boolean",
-      "Must be true or false"
-    );
-    return value;
-  },
-  ["OCO_OPENAI_MAX_TOKENS" /* OCO_OPENAI_MAX_TOKENS */](value) {
-    if (typeof value === "string") {
-      value = parseInt(value);
-      validateConfig(
-        "OCO_OPENAI_MAX_TOKENS" /* OCO_OPENAI_MAX_TOKENS */,
-        !isNaN(value),
-        "Must be a number"
-      );
-    }
-    validateConfig(
-      "OCO_OPENAI_MAX_TOKENS" /* OCO_OPENAI_MAX_TOKENS */,
-      value ? typeof value === "number" : void 0,
-      "Must be a number"
-    );
-    return value;
-  },
-  ["OCO_EMOJI" /* OCO_EMOJI */](value) {
-    validateConfig(
-      "OCO_EMOJI" /* OCO_EMOJI */,
-      typeof value === "boolean",
-      "Must be true or false"
-    );
-    return value;
-  },
-  ["OCO_LANGUAGE" /* OCO_LANGUAGE */](value) {
-    validateConfig(
-      "OCO_LANGUAGE" /* OCO_LANGUAGE */,
-      getI18nLocal(value),
-      `${value} is not supported yet`
-    );
-    return getI18nLocal(value);
-  },
-  ["OCO_OPENAI_BASE_PATH" /* OCO_OPENAI_BASE_PATH */](value) {
-    validateConfig(
-      "OCO_OPENAI_BASE_PATH" /* OCO_OPENAI_BASE_PATH */,
-      typeof value === "string",
-      "Must be string"
-    );
-    return value;
-  },
-  ["OCO_MODEL" /* OCO_MODEL */](value) {
-    validateConfig(
-      "OCO_MODEL" /* OCO_MODEL */,
-      [
-        "gpt-3.5-turbo",
-        "gpt-4",
-        "gpt-3.5-turbo-16k",
-        "gpt-3.5-turbo-0613"
-      ].includes(value),
-      `${value} is not supported yet, use 'gpt-4', 'gpt-3.5-turbo-16k' (default), 'gpt-3.5-turbo-0613' or 'gpt-3.5-turbo'`
-    );
-    return value;
-  },
-  ["OCO_MESSAGE_TEMPLATE_PLACEHOLDER" /* OCO_MESSAGE_TEMPLATE_PLACEHOLDER */](value) {
-    validateConfig(
-      "OCO_MESSAGE_TEMPLATE_PLACEHOLDER" /* OCO_MESSAGE_TEMPLATE_PLACEHOLDER */,
-      value.startsWith("$"),
-      `${value} must start with $, for example: '$msg'`
-    );
-    return value;
-  },
-  ["OCO_PROMPT_MODULE" /* OCO_PROMPT_MODULE */](value) {
-    validateConfig(
-      "OCO_PROMPT_MODULE" /* OCO_PROMPT_MODULE */,
-      ["conventional-commit", "@commitlint"].includes(value),
-      `${value} is not supported yet, use '@commitlint' or 'conventional-commit' (default)`
-    );
-    return value;
-  },
-  ["OCO_AI_PROVIDER" /* OCO_AI_PROVIDER */](value) {
-    validateConfig(
-      "OCO_AI_PROVIDER" /* OCO_AI_PROVIDER */,
-      [
-        "",
-        "openai",
-        "ollama"
-      ].includes(value),
-      `${value} is not supported yet, use 'ollama' or 'openai' (default)`
-    );
-    return value;
-  }
-};
-var configPath = (0, import_path.join)((0, import_os.homedir)(), ".opencommit");
-var getConfig = () => {
-  const configFromEnv = {
-    OCO_OPENAI_API_KEY: process.env.OCO_OPENAI_API_KEY,
-    OCO_OPENAI_MAX_TOKENS: process.env.OCO_OPENAI_MAX_TOKENS ? Number(process.env.OCO_OPENAI_MAX_TOKENS) : void 0,
-    OCO_OPENAI_BASE_PATH: process.env.OCO_OPENAI_BASE_PATH,
-    OCO_DESCRIPTION: process.env.OCO_DESCRIPTION === "true" ? true : false,
-    OCO_EMOJI: process.env.OCO_EMOJI === "true" ? true : false,
-    OCO_MODEL: process.env.OCO_MODEL || "gpt-3.5-turbo-16k",
-    OCO_LANGUAGE: process.env.OCO_LANGUAGE || "en",
-    OCO_MESSAGE_TEMPLATE_PLACEHOLDER: process.env.OCO_MESSAGE_TEMPLATE_PLACEHOLDER || "$msg",
-    OCO_PROMPT_MODULE: process.env.OCO_PROMPT_MODULE || "conventional-commit",
-    OCO_AI_PROVIDER: process.env.OCO_AI_PROVIDER || "openai"
-  };
-  const configExists = (0, import_fs.existsSync)(configPath);
-  if (!configExists)
-    return configFromEnv;
-  const configFile = (0, import_fs.readFileSync)(configPath, "utf8");
-  const config8 = (0, import_ini.parse)(configFile);
-  for (const configKey of Object.keys(config8)) {
-    if (!config8[configKey] || ["null", "undefined"].includes(config8[configKey])) {
-      config8[configKey] = void 0;
-      continue;
-    }
-    try {
-      const validator = configValidators[configKey];
-      const validValue = validator(
-        config8[configKey] ?? configFromEnv[configKey],
-        config8
-      );
-      config8[configKey] = validValue;
-    } catch (error) {
-      ce(
-        `'${configKey}' name is invalid, it should be either 'OCO_${configKey.toUpperCase()}' or it doesn't exist.`
-      );
-      ce(
-        `Manually fix the '.env' file or global '~/.opencommit' config file.`
-      );
-      process.exit(1);
-    }
-  }
-  return config8;
-};
-var setConfig = (keyValues) => {
-  const config8 = getConfig() || {};
-  for (const [configKey, configValue] of keyValues) {
-    if (!configValidators.hasOwnProperty(configKey)) {
-      throw new Error(`Unsupported config key: ${configKey}`);
-    }
-    let parsedConfigValue;
-    try {
-      parsedConfigValue = JSON.parse(configValue);
-    } catch (error) {
-      parsedConfigValue = configValue;
-    }
-    const validValue = configValidators[configKey](parsedConfigValue);
-    config8[configKey] = validValue;
-  }
-  (0, import_fs.writeFileSync)(configPath, (0, import_ini.stringify)(config8), "utf8");
-  ce(`${source_default.green("\u2714")} Config successfully set`);
-};
-var configCommand = G3(
-  {
-    name: "config" /* config */,
-    parameters: ["<mode>", "<key=values...>"]
-  },
-  async (argv) => {
-    ae("opencommit \u2014 config");
-    try {
-      const { mode: mode2, keyValues } = argv._;
-      if (mode2 === "get" /* get */) {
-        const config8 = getConfig() || {};
-        for (const key of keyValues) {
-          ce(`${key}=${config8[key]}`);
-        }
-      } else if (mode2 === "set" /* set */) {
-        await setConfig(
-          keyValues.map((keyValue) => keyValue.split("="))
-        );
-      } else {
-        throw new Error(
-          `Unsupported mode: ${mode2}. Valid modes are: "set" and "get"`
-        );
-      }
-    } catch (error) {
-      ce(`${source_default.red("\u2716")} ${error}`);
-      process.exit(1);
-    }
-  }
-);
-
-// src/prompts.ts
-var import_openai3 = __toESM(require_dist(), 1);
-
-// src/modules/commitlint/constants.ts
-var COMMITLINT_LLM_CONFIG_PATH = `${process.env.PWD}/.opencommit-commitlint`;
-
-// src/modules/commitlint/crypto.ts
-var import_crypto = __toESM(require("crypto"), 1);
-var computeHash = async (content, algorithm = "sha256") => {
-  try {
-    const hash = import_crypto.default.createHash(algorithm);
-    hash.update(content);
-    return hash.digest("hex");
-  } catch (error) {
-    console.error("Error while computing hash:", error);
-    throw error;
-  }
-};
-
-// src/modules/commitlint/prompts.ts
-var import_openai = __toESM(require_dist(), 1);
-var import_types = __toESM(require_lib(), 1);
-var config2 = getConfig();
-var translation = i18n[config2?.OCO_LANGUAGE || "en"];
-var getTypeRuleExtraDescription = (type, prompt) => prompt?.questions?.type?.enum?.[type]?.description;
-var llmReadableRules = {
-  blankline: (key, applicable) => `There should ${applicable} be a blank line at the beginning of the ${key}.`,
-  caseRule: (key, applicable, value) => `The ${key} should ${applicable} be in ${Array.isArray(value) ? `one of the following case: 
-  - ${value.join("\n  - ")}.` : `${value} case.`}`,
-  emptyRule: (key, applicable) => `The ${key} should ${applicable} be empty.`,
-  enumRule: (key, applicable, value) => `The ${key} should ${applicable} be one of the following values: 
-  - ${Array.isArray(value) ? value.join("\n  - ") : value}.`,
-  enumTypeRule: (key, applicable, value, prompt) => `The ${key} should ${applicable} be one of the following values: 
-  - ${Array.isArray(value) ? value.map((v4) => {
-    const description = getTypeRuleExtraDescription(v4, prompt);
-    if (description) {
-      return `${v4} (${description})`;
-    } else
-      return v4;
-  }).join("\n  - ") : value}.`,
-  fullStopRule: (key, applicable, value) => `The ${key} should ${applicable} end with '${value}'.`,
-  maxLengthRule: (key, applicable, value) => `The ${key} should ${applicable} have ${value} characters or less.`,
-  minLengthRule: (key, applicable, value) => `The ${key} should ${applicable} have ${value} characters or more.`
-};
-var rulesPrompts = {
-  "body-case": (applicable, value) => llmReadableRules.caseRule("body", applicable, value),
-  "body-empty": (applicable) => llmReadableRules.emptyRule("body", applicable, void 0),
-  "body-full-stop": (applicable, value) => llmReadableRules.fullStopRule("body", applicable, value),
-  "body-leading-blank": (applicable) => llmReadableRules.blankline("body", applicable, void 0),
-  "body-max-length": (applicable, value) => llmReadableRules.maxLengthRule("body", applicable, value),
-  "body-max-line-length": (applicable, value) => `Each line of the body should ${applicable} have ${value} characters or less.`,
-  "body-min-length": (applicable, value) => llmReadableRules.minLengthRule("body", applicable, value),
-  "footer-case": (applicable, value) => llmReadableRules.caseRule("footer", applicable, value),
-  "footer-empty": (applicable) => llmReadableRules.emptyRule("footer", applicable, void 0),
-  "footer-leading-blank": (applicable) => llmReadableRules.blankline("footer", applicable, void 0),
-  "footer-max-length": (applicable, value) => llmReadableRules.maxLengthRule("footer", applicable, value),
-  "footer-max-line-length": (applicable, value) => `Each line of the footer should ${applicable} have ${value} characters or less.`,
-  "footer-min-length": (applicable, value) => llmReadableRules.minLengthRule("footer", applicable, value),
-  "header-case": (applicable, value) => llmReadableRules.caseRule("header", applicable, value),
-  "header-full-stop": (applicable, value) => llmReadableRules.fullStopRule("header", applicable, value),
-  "header-max-length": (applicable, value) => llmReadableRules.maxLengthRule("header", applicable, value),
-  "header-min-length": (applicable, value) => llmReadableRules.minLengthRule("header", applicable, value),
-  "references-empty": (applicable) => llmReadableRules.emptyRule("references section", applicable, void 0),
-  "scope-case": (applicable, value) => llmReadableRules.caseRule("scope", applicable, value),
-  "scope-empty": (applicable) => llmReadableRules.emptyRule("scope", applicable, void 0),
-  "scope-enum": (applicable, value) => llmReadableRules.enumRule("type", applicable, value),
-  "scope-max-length": (applicable, value) => llmReadableRules.maxLengthRule("scope", applicable, value),
-  "scope-min-length": (applicable, value) => llmReadableRules.minLengthRule("scope", applicable, value),
-  "signed-off-by": (applicable, value) => `The commit message should ${applicable} have a "Signed-off-by" line with the value "${value}".`,
-  "subject-case": (applicable, value) => llmReadableRules.caseRule("subject", applicable, value),
-  "subject-empty": (applicable) => llmReadableRules.emptyRule("subject", applicable, void 0),
-  "subject-full-stop": (applicable, value) => llmReadableRules.fullStopRule("subject", applicable, value),
-  "subject-max-length": (applicable, value) => llmReadableRules.maxLengthRule("subject", applicable, value),
-  "subject-min-length": (applicable, value) => llmReadableRules.minLengthRule("subject", applicable, value),
-  "type-case": (applicable, value) => llmReadableRules.caseRule("type", applicable, value),
-  "type-empty": (applicable) => llmReadableRules.emptyRule("type", applicable, void 0),
-  "type-enum": (applicable, value, prompt) => llmReadableRules.enumTypeRule("type", applicable, value, prompt),
-  "type-max-length": (applicable, value) => llmReadableRules.maxLengthRule("type", applicable, value),
-  "type-min-length": (applicable, value) => llmReadableRules.minLengthRule("type", applicable, value)
-};
-var getPrompt = (ruleName, ruleConfig, prompt) => {
-  const [severity, applicable, value] = ruleConfig;
-  if (severity === import_types.RuleConfigSeverity.Disabled)
-    return null;
-  const promptFn = rulesPrompts[ruleName];
-  if (promptFn) {
-    return promptFn(applicable, value, prompt);
-  }
-  ce(`${source_default.red("\u2716")} No prompt handler for rule "${ruleName}".`);
-  return `Please manualy set the prompt for rule "${ruleName}".`;
-};
-var inferPromptsFromCommitlintConfig = (config8) => {
-  const { rules, prompt } = config8;
-  if (!rules)
-    return [];
-  return Object.keys(rules).map(
-    (ruleName) => getPrompt(ruleName, rules[ruleName], prompt)
-  ).filter((prompt2) => prompt2 !== null);
-};
-var STRUCTURE_OF_COMMIT = `
-- Header of commit is composed of type, scope, subject: <type-of-commit>(<scope-of-commit>): <subject-of-commit>
-- Description of commit is composed of body and footer (optional): <body-of-commit>
-<footer(s)-of-commit>`;
-var GEN_COMMITLINT_CONSISTENCY_PROMPT = (prompts) => [
-  {
-    role: import_openai.ChatCompletionRequestMessageRoleEnum.Assistant,
-    content: `${IDENTITY} Your mission is to create clean and comprehensive commit messages for two different changes in a single codebase and output them in the provided JSON format: one for a bug fix and another for a new feature. 
-
-Here are the specific requirements and conventions that should be strictly followed:
-
-Commit Message Conventions:
-- The commit message consists of three parts: Header, Body, and Footer.
-- Header: 
-  - Format: \`<type>(<scope>): <subject>\`
-- ${prompts.join("\n- ")}
-
-JSON Output Format:
-- The JSON output should contain the commit messages for a bug fix and a new feature in the following format:
-\`\`\`json
-{
-  "localLanguage": "${translation.localLanguage}",
-  "commitFix": "<Header of commit for bug fix>",
-  "commitFeat": "<Header of commit for feature>",
-  "commitDescription": "<Description of commit for both the bug fix and the feature>"
-}
-\`\`\`
-- The "commitDescription" should not include the commit message\u2019s header, only the description.
-- Description should not be more than 74 characters.
-
-Additional Details:
-- Changing the variable 'port' to uppercase 'PORT' is considered a bug fix. 
-- Allowing the server to listen on a port specified through the environment variable is considered a new feature. 
-
-Example Git Diff is to follow:`
-  },
-  INIT_DIFF_PROMPT
-];
-var INIT_MAIN_PROMPT = (language, prompts) => ({
-  role: import_openai.ChatCompletionRequestMessageRoleEnum.System,
-  content: `${IDENTITY} Your mission is to create clean and comprehensive commit messages in the given @commitlint convention and explain WHAT were the changes and WHY the changes were done. I'll send you an output of 'git diff --staged' command, and you convert it into a commit message.
-${config2?.OCO_EMOJI ? "Use GitMoji convention to preface the commit." : "Do not preface the commit with anything."}
-${config2?.OCO_DESCRIPTION ? `Add a short description of WHY the changes are done after the commit message. Don't start it with "This commit", just describe the changes.` : "Don't add any descriptions to the commit, only commit message."}
-Use the present tense. Use ${language} to answer.
-    
-You will strictly follow the following conventions to generate the content of the commit message:
-- ${prompts.join("\n- ")}
-
-The conventions refers to the following structure of commit message:
-${STRUCTURE_OF_COMMIT}
-    
-    `
-});
-var commitlintPrompts = {
-  INIT_MAIN_PROMPT,
-  GEN_COMMITLINT_CONSISTENCY_PROMPT
-};
-
-// src/modules/commitlint/pwd-commitlint.ts
-var import_path2 = __toESM(require("path"), 1);
-var nodeModulesPath = import_path2.default.join(
-  process.env.PWD || process.cwd(),
-  "node_modules",
-  "@commitlint",
-  "load"
-);
-var getCommitLintPWDConfig = async () => {
-  const load = require(nodeModulesPath).default;
-  if (load && typeof load === "function") {
-    return await load();
-  }
-  return null;
-};
-
-// src/modules/commitlint/utils.ts
-var import_promises = __toESM(require("fs/promises"), 1);
-var removeDoubleNewlines = (input) => {
-  const pattern = /\\n\\n/g;
-  if (pattern.test(input)) {
-    const newInput = input.replace(pattern, "");
-    return removeDoubleNewlines(newInput);
-  }
-  return input;
-};
-var commitlintLLMConfigExists = async () => {
-  let exists;
-  try {
-    await import_promises.default.access(COMMITLINT_LLM_CONFIG_PATH);
-    exists = true;
-  } catch (e2) {
-    exists = false;
-  }
-  return exists;
-};
-var writeCommitlintLLMConfig = async (commitlintLLMConfig) => {
-  await import_promises.default.writeFile(
-    COMMITLINT_LLM_CONFIG_PATH,
-    JSON.stringify(commitlintLLMConfig, null, 2)
-  );
-};
-var getCommitlintLLMConfig = async () => {
-  const content = await import_promises.default.readFile(COMMITLINT_LLM_CONFIG_PATH);
-  const commitLintLLMConfig = JSON.parse(
-    content.toString()
-  );
-  return commitLintLLMConfig;
-};
 
 // node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
@@ -21880,6 +21466,506 @@ var {
   mergeConfig: mergeConfig2
 } = axios_default;
 
+// src/engine/ollama.ts
+var OllamaAi = class {
+  constructor(model = "mistral", basePath2 = "http://localhost:11434") {
+    this.model = model;
+    this.basePath = basePath2;
+  }
+  async generateCommitMessage(messages) {
+    let prompt = messages.map((x4) => x4.content).join("\n");
+    prompt += "Summarize above git diff in 10 words or less";
+    const url3 = `${this.basePath}/api/generate`;
+    const p4 = {
+      model: this.model,
+      prompt,
+      stream: false
+    };
+    try {
+      const response = await axios_default.post(url3, p4, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+      return response.data?.response;
+    } catch (err) {
+      const message = err.response?.data?.error ?? err.message;
+      throw new Error("local model issues. details: " + message);
+    }
+  }
+  static async validateBaseUrl(baseUrl) {
+    baseUrl = baseUrl.trim().replace(/\/$/, "");
+    const url3 = `${baseUrl}/api/tags`;
+    try {
+      const response = await axios_default.get(url3, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+      return response.status === 200;
+    } catch (err) {
+      const message = err.response?.data?.error ?? err.message;
+      console.error("Failed to connect to api: " + err);
+      throw new Error("Failed to connect to api: " + message);
+    }
+  }
+  static async validateModel(model, baseUrl = "http://localhost:11434") {
+    const url3 = `${baseUrl}/api/show`;
+    const p4 = {
+      name: model
+    };
+    try {
+      const response = await axios_default.post(url3, p4, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+      return response.status === 200;
+    } catch (err) {
+      const message = err.response?.data?.error ?? err.message;
+      throw new Error("local model issues. details: " + message);
+    }
+  }
+};
+var ollamaAi = new OllamaAi();
+
+// src/commands/config.ts
+dotenv.config();
+var DEFAULT_MODEL_TOKEN_LIMIT = 4096;
+var validateConfig = (key, condition, validationMessage) => {
+  if (!condition) {
+    ce(
+      `${source_default.red("\u2716")} Unsupported config key ${key}: ${validationMessage}`
+    );
+    process.exit(1);
+  }
+};
+var configValidators = {
+  ["OCO_OPENAI_API_KEY" /* OCO_OPENAI_API_KEY */](value, config8 = {}) {
+    validateConfig("API_KEY", value || config8.OCO_AI_PROVIDER == "ollama", "You need to provide an API key");
+    validateConfig(
+      "OCO_OPENAI_API_KEY" /* OCO_OPENAI_API_KEY */,
+      value.startsWith("sk-"),
+      'Must start with "sk-"'
+    );
+    validateConfig(
+      "OCO_OPENAI_API_KEY" /* OCO_OPENAI_API_KEY */,
+      config8["OCO_OPENAI_BASE_PATH" /* OCO_OPENAI_BASE_PATH */] || value.length === 51,
+      "Must be 51 characters long"
+    );
+    return value;
+  },
+  ["OCO_DESCRIPTION" /* OCO_DESCRIPTION */](value) {
+    validateConfig(
+      "OCO_DESCRIPTION" /* OCO_DESCRIPTION */,
+      typeof value === "boolean",
+      "Must be true or false"
+    );
+    return value;
+  },
+  ["OCO_OPENAI_MAX_TOKENS" /* OCO_OPENAI_MAX_TOKENS */](value) {
+    if (typeof value === "string") {
+      value = parseInt(value);
+      validateConfig(
+        "OCO_OPENAI_MAX_TOKENS" /* OCO_OPENAI_MAX_TOKENS */,
+        !isNaN(value),
+        "Must be a number"
+      );
+    }
+    validateConfig(
+      "OCO_OPENAI_MAX_TOKENS" /* OCO_OPENAI_MAX_TOKENS */,
+      value ? typeof value === "number" : void 0,
+      "Must be a number"
+    );
+    return value;
+  },
+  ["OCO_EMOJI" /* OCO_EMOJI */](value) {
+    validateConfig(
+      "OCO_EMOJI" /* OCO_EMOJI */,
+      typeof value === "boolean",
+      "Must be true or false"
+    );
+    return value;
+  },
+  ["OCO_LANGUAGE" /* OCO_LANGUAGE */](value) {
+    validateConfig(
+      "OCO_LANGUAGE" /* OCO_LANGUAGE */,
+      getI18nLocal(value),
+      `${value} is not supported yet`
+    );
+    return getI18nLocal(value);
+  },
+  ["OCO_OPENAI_BASE_PATH" /* OCO_OPENAI_BASE_PATH */](value) {
+    validateConfig(
+      "OCO_OPENAI_BASE_PATH" /* OCO_OPENAI_BASE_PATH */,
+      typeof value === "string",
+      "Must be string"
+    );
+    return value;
+  },
+  ["OCO_MODEL" /* OCO_MODEL */](value) {
+    validateConfig(
+      "OCO_MODEL" /* OCO_MODEL */,
+      [
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "gpt-3.5-turbo-16k",
+        "gpt-3.5-turbo-0613"
+      ].includes(value),
+      `${value} is not supported yet, use 'gpt-4', 'gpt-3.5-turbo-16k' (default), 'gpt-3.5-turbo-0613' or 'gpt-3.5-turbo'`
+    );
+    return value;
+  },
+  ["OCO_MESSAGE_TEMPLATE_PLACEHOLDER" /* OCO_MESSAGE_TEMPLATE_PLACEHOLDER */](value) {
+    validateConfig(
+      "OCO_MESSAGE_TEMPLATE_PLACEHOLDER" /* OCO_MESSAGE_TEMPLATE_PLACEHOLDER */,
+      value.startsWith("$"),
+      `${value} must start with $, for example: '$msg'`
+    );
+    return value;
+  },
+  ["OCO_PROMPT_MODULE" /* OCO_PROMPT_MODULE */](value) {
+    validateConfig(
+      "OCO_PROMPT_MODULE" /* OCO_PROMPT_MODULE */,
+      ["conventional-commit", "@commitlint"].includes(value),
+      `${value} is not supported yet, use '@commitlint' or 'conventional-commit' (default)`
+    );
+    return value;
+  },
+  ["OCO_AI_PROVIDER" /* OCO_AI_PROVIDER */](value) {
+    validateConfig(
+      "OCO_AI_PROVIDER" /* OCO_AI_PROVIDER */,
+      [
+        "",
+        "openai",
+        "ollama"
+      ].includes(value),
+      `${value} is not supported yet, use 'ollama' or 'openai' (default)`
+    );
+    return value;
+  },
+  async ["OCO_OLLAMA_BASE_PATH" /* OCO_OLLAMA_BASE_PATH */](value) {
+    validateConfig(
+      "OCO_OLLAMA_BASE_PATH" /* OCO_OLLAMA_BASE_PATH */,
+      typeof value === "string",
+      "Must be string"
+    );
+    validateConfig(
+      "OCO_OLLAMA_BASE_PATH" /* OCO_OLLAMA_BASE_PATH */,
+      await OllamaAi.validateBaseUrl(value),
+      "Must be valid ollama url"
+    );
+    return value;
+  },
+  async ["OCO_OLLAMA_MODEL" /* OCO_OLLAMA_MODEL */](value, config8 = {}) {
+    validateConfig(
+      "OCO_OLLAMA_MODEL" /* OCO_OLLAMA_MODEL */,
+      await OllamaAi.validateModel(value, config8?.OCO_OLLAMA_BASE_PATH),
+      `${value} is not supported yet, use 'mistral' (default)`
+    );
+    return value;
+  }
+};
+var configPath = (0, import_path.join)((0, import_os.homedir)(), ".opencommit");
+var getConfig = () => {
+  const configFromEnv = {
+    OCO_OPENAI_API_KEY: process.env.OCO_OPENAI_API_KEY,
+    OCO_OPENAI_MAX_TOKENS: process.env.OCO_OPENAI_MAX_TOKENS ? Number(process.env.OCO_OPENAI_MAX_TOKENS) : void 0,
+    OCO_OPENAI_BASE_PATH: process.env.OCO_OPENAI_BASE_PATH,
+    OCO_DESCRIPTION: process.env.OCO_DESCRIPTION === "true" ? true : false,
+    OCO_EMOJI: process.env.OCO_EMOJI === "true" ? true : false,
+    OCO_MODEL: process.env.OCO_MODEL || "gpt-3.5-turbo-16k",
+    OCO_LANGUAGE: process.env.OCO_LANGUAGE || "en",
+    OCO_MESSAGE_TEMPLATE_PLACEHOLDER: process.env.OCO_MESSAGE_TEMPLATE_PLACEHOLDER || "$msg",
+    OCO_PROMPT_MODULE: process.env.OCO_PROMPT_MODULE || "conventional-commit",
+    OCO_AI_PROVIDER: process.env.OCO_AI_PROVIDER || "openai",
+    OCO_OLLAMA_BASE_PATH: process.env.OCO_OLLAMA_BASE_PATH || "http://localhost:11434",
+    OCO_OLLAMA_MODEL: process.env.OCO_OLLAMA_MODEL || "mistral"
+  };
+  const configExists = (0, import_fs.existsSync)(configPath);
+  if (!configExists)
+    return configFromEnv;
+  const configFile = (0, import_fs.readFileSync)(configPath, "utf8");
+  const config8 = (0, import_ini.parse)(configFile);
+  for (const configKey of Object.keys(config8)) {
+    if (!config8[configKey] || ["null", "undefined"].includes(config8[configKey])) {
+      config8[configKey] = void 0;
+      continue;
+    }
+    try {
+      const validator = configValidators[configKey];
+      const validValue = validator(
+        config8[configKey] ?? configFromEnv[configKey],
+        config8
+      );
+      config8[configKey] = validValue;
+    } catch (error) {
+      ce(
+        `'${configKey}' name is invalid, it should be either 'OCO_${configKey.toUpperCase()}' or it doesn't exist.`
+      );
+      ce(
+        `Manually fix the '.env' file or global '~/.opencommit' config file.`
+      );
+      process.exit(1);
+    }
+  }
+  return config8;
+};
+var setConfig = (keyValues) => {
+  const config8 = getConfig() || {};
+  for (const [configKey, configValue] of keyValues) {
+    if (!configValidators.hasOwnProperty(configKey)) {
+      throw new Error(`Unsupported config key: ${configKey}`);
+    }
+    let parsedConfigValue;
+    try {
+      parsedConfigValue = JSON.parse(configValue);
+    } catch (error) {
+      parsedConfigValue = configValue;
+    }
+    const validValue = configValidators[configKey](parsedConfigValue, config8);
+    config8[configKey] = validValue;
+  }
+  (0, import_fs.writeFileSync)(configPath, (0, import_ini.stringify)(config8), "utf8");
+  ce(`${source_default.green("\u2714")} Config successfully set`);
+};
+var configCommand = G3(
+  {
+    name: "config" /* config */,
+    parameters: ["<mode>", "<key=values...>"]
+  },
+  async (argv) => {
+    ae("opencommit \u2014 config");
+    try {
+      const { mode: mode2, keyValues } = argv._;
+      if (mode2 === "get" /* get */) {
+        const config8 = getConfig() || {};
+        for (const key of keyValues) {
+          ce(`${key}=${config8[key]}`);
+        }
+      } else if (mode2 === "set" /* set */) {
+        await setConfig(
+          keyValues.map((keyValue) => keyValue.split("="))
+        );
+      } else {
+        throw new Error(
+          `Unsupported mode: ${mode2}. Valid modes are: "set" and "get"`
+        );
+      }
+    } catch (error) {
+      ce(`${source_default.red("\u2716")} ${error}`);
+      process.exit(1);
+    }
+  }
+);
+
+// src/prompts.ts
+var import_openai3 = __toESM(require_dist(), 1);
+
+// src/modules/commitlint/constants.ts
+var COMMITLINT_LLM_CONFIG_PATH = `${process.env.PWD}/.opencommit-commitlint`;
+
+// src/modules/commitlint/crypto.ts
+var import_crypto = __toESM(require("crypto"), 1);
+var computeHash = async (content, algorithm = "sha256") => {
+  try {
+    const hash = import_crypto.default.createHash(algorithm);
+    hash.update(content);
+    return hash.digest("hex");
+  } catch (error) {
+    console.error("Error while computing hash:", error);
+    throw error;
+  }
+};
+
+// src/modules/commitlint/prompts.ts
+var import_openai = __toESM(require_dist(), 1);
+var import_types = __toESM(require_lib(), 1);
+var config2 = getConfig();
+var translation = i18n[config2?.OCO_LANGUAGE || "en"];
+var getTypeRuleExtraDescription = (type, prompt) => prompt?.questions?.type?.enum?.[type]?.description;
+var llmReadableRules = {
+  blankline: (key, applicable) => `There should ${applicable} be a blank line at the beginning of the ${key}.`,
+  caseRule: (key, applicable, value) => `The ${key} should ${applicable} be in ${Array.isArray(value) ? `one of the following case: 
+  - ${value.join("\n  - ")}.` : `${value} case.`}`,
+  emptyRule: (key, applicable) => `The ${key} should ${applicable} be empty.`,
+  enumRule: (key, applicable, value) => `The ${key} should ${applicable} be one of the following values: 
+  - ${Array.isArray(value) ? value.join("\n  - ") : value}.`,
+  enumTypeRule: (key, applicable, value, prompt) => `The ${key} should ${applicable} be one of the following values: 
+  - ${Array.isArray(value) ? value.map((v4) => {
+    const description = getTypeRuleExtraDescription(v4, prompt);
+    if (description) {
+      return `${v4} (${description})`;
+    } else
+      return v4;
+  }).join("\n  - ") : value}.`,
+  fullStopRule: (key, applicable, value) => `The ${key} should ${applicable} end with '${value}'.`,
+  maxLengthRule: (key, applicable, value) => `The ${key} should ${applicable} have ${value} characters or less.`,
+  minLengthRule: (key, applicable, value) => `The ${key} should ${applicable} have ${value} characters or more.`
+};
+var rulesPrompts = {
+  "body-case": (applicable, value) => llmReadableRules.caseRule("body", applicable, value),
+  "body-empty": (applicable) => llmReadableRules.emptyRule("body", applicable, void 0),
+  "body-full-stop": (applicable, value) => llmReadableRules.fullStopRule("body", applicable, value),
+  "body-leading-blank": (applicable) => llmReadableRules.blankline("body", applicable, void 0),
+  "body-max-length": (applicable, value) => llmReadableRules.maxLengthRule("body", applicable, value),
+  "body-max-line-length": (applicable, value) => `Each line of the body should ${applicable} have ${value} characters or less.`,
+  "body-min-length": (applicable, value) => llmReadableRules.minLengthRule("body", applicable, value),
+  "footer-case": (applicable, value) => llmReadableRules.caseRule("footer", applicable, value),
+  "footer-empty": (applicable) => llmReadableRules.emptyRule("footer", applicable, void 0),
+  "footer-leading-blank": (applicable) => llmReadableRules.blankline("footer", applicable, void 0),
+  "footer-max-length": (applicable, value) => llmReadableRules.maxLengthRule("footer", applicable, value),
+  "footer-max-line-length": (applicable, value) => `Each line of the footer should ${applicable} have ${value} characters or less.`,
+  "footer-min-length": (applicable, value) => llmReadableRules.minLengthRule("footer", applicable, value),
+  "header-case": (applicable, value) => llmReadableRules.caseRule("header", applicable, value),
+  "header-full-stop": (applicable, value) => llmReadableRules.fullStopRule("header", applicable, value),
+  "header-max-length": (applicable, value) => llmReadableRules.maxLengthRule("header", applicable, value),
+  "header-min-length": (applicable, value) => llmReadableRules.minLengthRule("header", applicable, value),
+  "references-empty": (applicable) => llmReadableRules.emptyRule("references section", applicable, void 0),
+  "scope-case": (applicable, value) => llmReadableRules.caseRule("scope", applicable, value),
+  "scope-empty": (applicable) => llmReadableRules.emptyRule("scope", applicable, void 0),
+  "scope-enum": (applicable, value) => llmReadableRules.enumRule("type", applicable, value),
+  "scope-max-length": (applicable, value) => llmReadableRules.maxLengthRule("scope", applicable, value),
+  "scope-min-length": (applicable, value) => llmReadableRules.minLengthRule("scope", applicable, value),
+  "signed-off-by": (applicable, value) => `The commit message should ${applicable} have a "Signed-off-by" line with the value "${value}".`,
+  "subject-case": (applicable, value) => llmReadableRules.caseRule("subject", applicable, value),
+  "subject-empty": (applicable) => llmReadableRules.emptyRule("subject", applicable, void 0),
+  "subject-full-stop": (applicable, value) => llmReadableRules.fullStopRule("subject", applicable, value),
+  "subject-max-length": (applicable, value) => llmReadableRules.maxLengthRule("subject", applicable, value),
+  "subject-min-length": (applicable, value) => llmReadableRules.minLengthRule("subject", applicable, value),
+  "type-case": (applicable, value) => llmReadableRules.caseRule("type", applicable, value),
+  "type-empty": (applicable) => llmReadableRules.emptyRule("type", applicable, void 0),
+  "type-enum": (applicable, value, prompt) => llmReadableRules.enumTypeRule("type", applicable, value, prompt),
+  "type-max-length": (applicable, value) => llmReadableRules.maxLengthRule("type", applicable, value),
+  "type-min-length": (applicable, value) => llmReadableRules.minLengthRule("type", applicable, value)
+};
+var getPrompt = (ruleName, ruleConfig, prompt) => {
+  const [severity, applicable, value] = ruleConfig;
+  if (severity === import_types.RuleConfigSeverity.Disabled)
+    return null;
+  const promptFn = rulesPrompts[ruleName];
+  if (promptFn) {
+    return promptFn(applicable, value, prompt);
+  }
+  ce(`${source_default.red("\u2716")} No prompt handler for rule "${ruleName}".`);
+  return `Please manualy set the prompt for rule "${ruleName}".`;
+};
+var inferPromptsFromCommitlintConfig = (config8) => {
+  const { rules, prompt } = config8;
+  if (!rules)
+    return [];
+  return Object.keys(rules).map(
+    (ruleName) => getPrompt(ruleName, rules[ruleName], prompt)
+  ).filter((prompt2) => prompt2 !== null);
+};
+var STRUCTURE_OF_COMMIT = `
+- Header of commit is composed of type, scope, subject: <type-of-commit>(<scope-of-commit>): <subject-of-commit>
+- Description of commit is composed of body and footer (optional): <body-of-commit>
+<footer(s)-of-commit>`;
+var GEN_COMMITLINT_CONSISTENCY_PROMPT = (prompts) => [
+  {
+    role: import_openai.ChatCompletionRequestMessageRoleEnum.Assistant,
+    content: `${IDENTITY} Your mission is to create clean and comprehensive commit messages for two different changes in a single codebase and output them in the provided JSON format: one for a bug fix and another for a new feature. 
+
+Here are the specific requirements and conventions that should be strictly followed:
+
+Commit Message Conventions:
+- The commit message consists of three parts: Header, Body, and Footer.
+- Header: 
+  - Format: \`<type>(<scope>): <subject>\`
+- ${prompts.join("\n- ")}
+
+JSON Output Format:
+- The JSON output should contain the commit messages for a bug fix and a new feature in the following format:
+\`\`\`json
+{
+  "localLanguage": "${translation.localLanguage}",
+  "commitFix": "<Header of commit for bug fix>",
+  "commitFeat": "<Header of commit for feature>",
+  "commitDescription": "<Description of commit for both the bug fix and the feature>"
+}
+\`\`\`
+- The "commitDescription" should not include the commit message\u2019s header, only the description.
+- Description should not be more than 74 characters.
+
+Additional Details:
+- Changing the variable 'port' to uppercase 'PORT' is considered a bug fix. 
+- Allowing the server to listen on a port specified through the environment variable is considered a new feature. 
+
+Example Git Diff is to follow:`
+  },
+  INIT_DIFF_PROMPT
+];
+var INIT_MAIN_PROMPT = (language, prompts) => ({
+  role: import_openai.ChatCompletionRequestMessageRoleEnum.System,
+  content: `${IDENTITY} Your mission is to create clean and comprehensive commit messages in the given @commitlint convention and explain WHAT were the changes and WHY the changes were done. I'll send you an output of 'git diff --staged' command, and you convert it into a commit message.
+${config2?.OCO_EMOJI ? "Use GitMoji convention to preface the commit." : "Do not preface the commit with anything."}
+${config2?.OCO_DESCRIPTION ? `Add a short description of WHY the changes are done after the commit message. Don't start it with "This commit", just describe the changes.` : "Don't add any descriptions to the commit, only commit message."}
+Use the present tense. Use ${language} to answer.
+    
+You will strictly follow the following conventions to generate the content of the commit message:
+- ${prompts.join("\n- ")}
+
+The conventions refers to the following structure of commit message:
+${STRUCTURE_OF_COMMIT}
+    
+    `
+});
+var commitlintPrompts = {
+  INIT_MAIN_PROMPT,
+  GEN_COMMITLINT_CONSISTENCY_PROMPT
+};
+
+// src/modules/commitlint/pwd-commitlint.ts
+var import_path2 = __toESM(require("path"), 1);
+var nodeModulesPath = import_path2.default.join(
+  process.env.PWD || process.cwd(),
+  "node_modules",
+  "@commitlint",
+  "load"
+);
+var getCommitLintPWDConfig = async () => {
+  const load = require(nodeModulesPath).default;
+  if (load && typeof load === "function") {
+    return await load();
+  }
+  return null;
+};
+
+// src/modules/commitlint/utils.ts
+var import_promises = __toESM(require("fs/promises"), 1);
+var removeDoubleNewlines = (input) => {
+  const pattern = /\\n\\n/g;
+  if (pattern.test(input)) {
+    const newInput = input.replace(pattern, "");
+    return removeDoubleNewlines(newInput);
+  }
+  return input;
+};
+var commitlintLLMConfigExists = async () => {
+  let exists;
+  try {
+    await import_promises.default.access(COMMITLINT_LLM_CONFIG_PATH);
+    exists = true;
+  } catch (e2) {
+    exists = false;
+  }
+  return exists;
+};
+var writeCommitlintLLMConfig = async (commitlintLLMConfig) => {
+  await import_promises.default.writeFile(
+    COMMITLINT_LLM_CONFIG_PATH,
+    JSON.stringify(commitlintLLMConfig, null, 2)
+  );
+};
+var getCommitlintLLMConfig = async () => {
+  const content = await import_promises.default.readFile(COMMITLINT_LLM_CONFIG_PATH);
+  const commitLintLLMConfig = JSON.parse(
+    content.toString()
+  );
+  return commitLintLLMConfig;
+};
+
 // src/engine/openAi.ts
 var import_openai2 = __toESM(require_dist(), 1);
 
@@ -21962,40 +22048,14 @@ var OpenAi = class {
 };
 var api = new OpenAi();
 
-// src/engine/ollama.ts
-var OllamaAi = class {
-  async generateCommitMessage(messages) {
-    const model = "mistral";
-    let prompt = messages.map((x4) => x4.content).join("\n");
-    prompt += "Summarize above git diff in 10 words or less";
-    const url3 = "http://localhost:11434/api/generate";
-    const p4 = {
-      model,
-      prompt,
-      stream: false
-    };
-    try {
-      const response = await axios_default.post(url3, p4, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-      const answer = response.data?.response;
-      console.log("answer", answer);
-      return answer;
-    } catch (err) {
-      const message = err.response?.data?.error ?? err.message;
-      throw new Error("local model issues. details: " + message);
-    }
-  }
-};
-var ollamaAi = new OllamaAi();
-
 // src/utils/engine.ts
 function getEngine() {
   const config8 = getConfig();
   if (config8?.OCO_AI_PROVIDER == "ollama") {
-    return ollamaAi;
+    return new OllamaAi(
+      config8?.OCO_OLLAMA_MODEL || "mistral",
+      config8?.OCO_OLLAMA_BASE_PATH || "http://localhost:11434"
+    );
   }
   return api;
 }
